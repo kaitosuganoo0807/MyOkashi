@@ -7,8 +7,9 @@
 //
 
 import UIKit
+import SafariServices
 
-class ViewController: UIViewController, UISearchBarDelegate, UITableViewDataSource {
+class ViewController: UIViewController, UISearchBarDelegate, UITableViewDataSource, UITableViewDelegate, SFSafariViewControllerDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -21,6 +22,8 @@ class ViewController: UIViewController, UISearchBarDelegate, UITableViewDataSour
         
         // TableViewのdataSourceを設定
         tableView.dataSource = self
+        
+        tableView.delegate = self
         
     }
 
@@ -97,6 +100,8 @@ class ViewController: UIViewController, UISearchBarDelegate, UITableViewDataSour
                 
                 // お菓子の情報が取得できているか確認
                 if let items = json.item {
+                    // お菓子リストを初期化
+                    self.okashiList.removeAll()
                     // 取得してるお菓子の数だけ処理
                     for item in items {
                         
@@ -108,6 +113,9 @@ class ViewController: UIViewController, UISearchBarDelegate, UITableViewDataSour
                             self.okashiList.append(okashi)
                         }
                     }
+                    // Table Viewを更新する
+                    self.tableView.reloadData()
+                    
                     if let okashidbg = self.okashiList.first {
                         print("-----------------")
                         print("okashiList[0] = \(okashidbg)")
@@ -120,6 +128,51 @@ class ViewController: UIViewController, UISearchBarDelegate, UITableViewDataSour
         })
          //ダウンロード開始
         task.resume()
+    }
+    
+    // cellの関数を返すdatesourceメソッド、必ず記述する必要がある
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        //お菓子リストの総数
+        return okashiList.count
+    }
+    
+    // cellの関数を返すdatesourceメソッド、必ず記述する必要がある
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        //今回表示を行う、Cellオブジェクト（１行）を取得する
+        let cell = tableView.dequeueReusableCell(withIdentifier: "okashiCell", for: indexPath)
+        
+        //お菓子のタイトル設定
+        cell.textLabel?.text = okashiList[indexPath.row].name
+        //お菓子画像を取得
+        if let imageData = try? Data(contentsOf: okashiList[indexPath.row].image) {
+            //正確に取得できた場合は、UIImageで画像オブジェクトを生成して、Cellにお菓子画像を設定
+            cell.imageView?.image = UIImage(data: imageData)
+        }
+        
+        // 設定済みのCellオブジェクトを画像に反映
+        return cell
+        
+    }
+    
+    // cellが選択された際に呼び出されるdelegateメソッド
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        //ハイライト削除
+        tableView.deselectRow(at: indexPath, animated: true)
+        
+        // SFSafariViewを開く
+        let safariViewController = SFSafariViewController(url: okashiList[indexPath.row].link)
+        
+        // delegateの通知先を自分自身
+        safariViewController.delegate = self
+        
+        // SafariViewが開かれる
+        present(safariViewController, animated: true, completion: nil)
+    }
+    
+    // SafariViewが閉じられた時に呼ばれるdelegateメソッド
+    func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+        // SafariViewを閉じる
+        dismiss(animated: true, completion: nil)
     }
 }
 
